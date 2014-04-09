@@ -16,7 +16,6 @@ type expr =
 | Pi of abstraction
 | Lambda of abstraction
 | App of expr * expr
-| Noexpr // this might be a problem...
 and abstraction = variable * expr * expr
 
 // refresh x generates a fresh variable w/ preferred name x
@@ -38,7 +37,6 @@ let rec subst s =
     | Universe k -> Universe k
     | Pi a -> Pi (subst_abstraction s a)
     | Lambda a -> Lambda (subst_abstraction s a)
-    | Noexpr -> failwith "not an expression"
     | App (e1, e2) -> App (subst s e1, subst s e2)
 
 and subst_abstraction s (x, t, e) =
@@ -66,7 +64,6 @@ let extend x t v ctx = (x, (t, v)) :: ctx
 let rec normalize ctx = function
     | Var x -> match lookup_value x (ctx : context) with
                 | (_, None) -> Var x
-                | (_, Some Noexpr) -> Var x // TODO: check this
                 | (_, Some e) -> normalize ctx e     
     | App (e1, e2) ->
       let e2 = normalize ctx e2 in
@@ -76,7 +73,6 @@ let rec normalize ctx = function
     | Universe k -> Universe k
     | Pi a -> Pi (normalize_abstraction ctx a)
     | Lambda a -> Lambda (normalize_abstraction ctx a)
-    | Noexpr -> Noexpr // TODO: check this
 
 and normalize_abstraction ctx (x, t, e) =
     let t = normalize ctx t in
@@ -113,7 +109,6 @@ let rec infer_type (ctx : context) = function
       let te = infer_type ctx e2 in
         check_equal ctx s te ;
         subst [(x, e2)] t
-    | Noexpr -> failwith "bad"
 
 and infer_universe ctx t =
     let u = infer_type ctx t in
